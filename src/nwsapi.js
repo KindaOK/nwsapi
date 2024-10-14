@@ -1021,8 +1021,25 @@
                   break;
                 case 'has':
                   referenceElement = selector_string.split(':')[0];
-                  expr = match[2].replace(REX.CommaGroup, ',').replace(REX.TrimSpaces, '');
-                  source = 'if(s.match("' + referenceElement.replace(/\x22/g, '\\"') + '",e) && e.querySelector("'+ expr.replace(/\x22/g, '\\"') +'")){' + source + '}';
+
+                  expr = match[2].replace(REX.TrimSpaces, '').split(REX.CommaGroup).filter(function (str) {return str !== ','}).map(function (relativeSelector) {
+                    switch (relativeSelector[0]) {
+                      case "+":
+                        return '(e.nextElementSibling && s.match("' + relativeSelector.substring(1) + '",e.nextElementSibling))';
+                      case ">":
+                        // FIXME: scope is a convenient way to do this, but it's really bad performance-wise since
+                        //  it creates a gazillion functions when it could just do a child walk
+                        return 'e.querySelector(":scope' +  relativeSelector.replace(/\x22/g, '\\"') + '")'
+                      case "~":
+                        // FIXME doesn't actually work
+                        return '(e.querySelector(":scope ' +  relativeSelector.replace(/\x22/g, '\\"') + '"))'
+                      default:
+                        // implied descendent selector
+                        return 'e.querySelector("'+ relativeSelector.replace(/\x22/g, '\\"') + '")'
+                    }
+                  }).join(' || ');
+
+                  source = 'if(' + (referenceElement ? 's.match("' + referenceElement.replace(/\x22/g, '\\"') + '",e) && ' : '') + '(' + expr +')){' + source + '}';
                   break;
                 default:
                   emit('\'' + selector_string + '\'' + qsInvalid);
