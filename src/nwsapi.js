@@ -1023,19 +1023,23 @@
                   referenceElement = selector_string.split(':')[0];
 
                   expr = match[2].replace(REX.TrimSpaces, '').split(REX.CommaGroup).filter(function (str) {return str !== ','}).map(function (relativeSelector) {
+                    relativeSelector = relativeSelector.replace(/\x22/g, '\\"')
                     switch (relativeSelector[0]) {
                       case "+":
                         return '(e.nextElementSibling && s.match("' + relativeSelector.substring(1) + '",e.nextElementSibling))';
                       case ">":
                         // FIXME: scope is a convenient way to do this, but it's really bad performance-wise since
                         //  it creates a gazillion functions when it could just do a child walk
-                        return 'e.querySelector(":scope' +  relativeSelector.replace(/\x22/g, '\\"') + '")'
+                        return 'e.querySelector(":scope' +  relativeSelector + '")'
                       case "~":
-                        // FIXME doesn't actually work
-                        return '(e.querySelector(":scope ' +  relativeSelector.replace(/\x22/g, '\\"') + '"))'
+                        return '(function(){'+
+                          'var n=e.nextElementSibling;'+
+                          'while(n){' +
+                            'if(n.matches("' + relativeSelector.substring(1) + '"))return true;' +
+                          'n=n.nextElementSibling' +
+                          '};return false}())'
                       default:
-                        // implied descendent selector
-                        return 'e.querySelector("'+ relativeSelector.replace(/\x22/g, '\\"') + '")'
+                        return 'e.querySelector("'+ relativeSelector + '")'
                     }
                   }).join(' || ');
 
