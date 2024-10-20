@@ -1028,9 +1028,12 @@
                       case "+":
                         return '(e.nextElementSibling && s.match("' + relativeSelector.substring(1) + '",e.nextElementSibling))';
                       case ">":
-                        // FIXME: scope is a convenient way to do this, but it's really bad performance-wise since
-                        //  it creates a gazillion functions when it could just do a child walk
-                        return 'e.querySelector(":scope' +  relativeSelector + '")'
+                        return '(function(){'+
+                          'var n=e.firstElementChild;'+
+                          'while(n){' +
+                            'if(n.matches("' + relativeSelector.substring(1) + '"))return true;' +
+                          'n=n.nextElementSibling' +
+                          '};return false}())'
                       case "~":
                         return '(function(){'+
                           'var n=e.nextElementSibling;'+
